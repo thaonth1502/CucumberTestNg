@@ -1,8 +1,9 @@
-package thaonth7.fpt.com.helpers;
+package thaonth7.helpers;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import thaonth7.utils.LogUtils;
 
 import java.io.*;
 import java.util.HashMap;
@@ -12,81 +13,85 @@ import java.util.Map;
 public class ExcelHelper {
 
     private FileInputStream fis;
-    private FileOutputStream fos;
+    private FileOutputStream fileOut;
     private Workbook wb;
     private Sheet sh;
     private Cell cell;
     private Row row;
-    private CellStyle cellStyle;
-    private Color myColor;
     private String excelFilePath;
     private Map<String, Integer> columns = new HashMap<>();
 
-    public void setExcelFile(String excelPath, String sheetName){
-        try{
-            File f = new File(excelPath);
+    public void setExcelFile(String ExcelPath, String SheetName){
+        try {
+            File f = new File(ExcelPath);
 
-            if (!f.exists()){
-                throw  new Exception("File doesn't exist.");
+            if (!f.exists()) {
+                throw new Exception("File doesn't exist.");
             }
-            fis = new FileInputStream(excelPath);
-            wb = WorkbookFactory.create(fis);
-            sh = wb.getSheet(sheetName);
 
-            if (sh == null){
+            fis = new FileInputStream(ExcelPath);
+            wb = WorkbookFactory.create(fis);
+            sh = wb.getSheet(SheetName);
+
+            if (sh == null) {
                 throw new Exception("Sheet name doesn't exist.");
             }
-            this.excelFilePath = excelPath;
+
+            this.excelFilePath = ExcelPath;
 
             //adding all the column header names to the map 'columns'
-            sh.getRow(0).forEach(cell1 -> {
+            sh.getRow(0).forEach(cell ->{
                 columns.put(cell.getStringCellValue(), cell.getColumnIndex());
             });
 
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            LogUtils.error(e.getMessage());
         }
     }
 
     public String getCellData(int columnIndex, int rowIndex) {
         try {
             cell = sh.getRow(rowIndex).getCell(columnIndex);
-            String cellData = null;
+            String CellData = null;
             switch (cell.getCellType()) {
                 case STRING:
-                    cellData = cell.getStringCellValue();
+                    CellData = cell.getStringCellValue();
                     break;
                 case NUMERIC:
                     if (DateUtil.isCellDateFormatted(cell)) {
-                        cellData = String.valueOf(cell.getDateCellValue());
+                        CellData = String.valueOf(cell.getDateCellValue());
                     } else {
-                        cellData = String.valueOf((long) cell.getNumericCellValue());
+                        CellData = String.valueOf((long) cell.getNumericCellValue());
                     }
                     break;
                 case BOOLEAN:
-                    cellData = Boolean.toString(cell.getBooleanCellValue());
+                    CellData = Boolean.toString(cell.getBooleanCellValue());
                     break;
                 case BLANK:
-                    cellData = "";
+                    CellData = "";
                     break;
             }
-            return cellData;
+            return CellData;
         } catch (Exception e) {
             return "";
         }
     }
 
-    //Set by column index
-    public void setCellData(String text, int columnIndex, int rowIndex){
+    //Gọi ra hàm này dùng cho rõ ràng
+    public String getCellData(String columnName, int rowIndex) {
+        return getCellData(columns.get(columnName), rowIndex);
+    }
 
+    //set by column index
+    public void setCellData(String text, int columnIndex, int rowIndex) {
         try {
             row = sh.getRow(rowIndex);
-            if (row == null){
+            if (row == null) {
                 row = sh.createRow(rowIndex);
             }
-
             cell = row.getCell(columnIndex);
-            if (cell == null){
+
+            if (cell == null) {
                 cell = row.createCell(columnIndex);
             }
             cell.setCellValue(text);
@@ -98,50 +103,82 @@ public class ExcelHelper {
 
             cell.setCellStyle(style);
 
-            fos = new FileOutputStream(excelFilePath);
-            wb.write(fos);
-            fos.flush();
-            fos.close();
-            System.out.println("Set data completed.");
+            fileOut = new FileOutputStream(excelFilePath);
+            wb.write(fileOut);
+            fileOut.flush();
+            fileOut.close();
+            LogUtils.info("Set data completed.");
+        } catch (Exception e) {
+            LogUtils.error(e.getMessage());
+        }
+    }
 
-        } catch (Exception e){
-            System.out.println(e.getMessage());
+    //set by column name
+    public void setCellData(String text, String columnName, int rowIndex) {
+        try {
+            row = sh.getRow(rowIndex);
+            if (row == null) {
+                row = sh.createRow(rowIndex);
+            }
+            cell = row.getCell(columns.get(columnName));
+
+            if (cell == null) {
+                cell = row.createCell(columns.get(columnName));
+            }
+            cell.setCellValue(text);
+
+            XSSFCellStyle style = (XSSFCellStyle) wb.createCellStyle();
+            style.setFillPattern(FillPatternType.NO_FILL);
+            style.setAlignment(HorizontalAlignment.CENTER);
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+
+            cell.setCellStyle(style);
+
+            fileOut = new FileOutputStream(excelFilePath);
+            wb.write(fileOut);
+            fileOut.flush();
+            fileOut.close();
+            LogUtils.info("Set data completed.");
+        } catch (Exception e) {
+            LogUtils.error(e.getMessage());
         }
     }
 
     //Get all data from a sheet
-    public  Object[][] getExcelData(String filePath, String sheetName){
+    public Object[][] getExcelData(String filePath, String sheetName) {
         Object[][] data = null;
-        Workbook  workbook = null;
-
+        Workbook workbook = null;
         try {
-            //Load the file
+            // load the file
             FileInputStream fis = new FileInputStream(filePath);
 
-            //Load the workbook
+            // load the workbook
             workbook = new XSSFWorkbook(fis);
 
-            //load the sheet
+            // load the sheet
             Sheet sh = workbook.getSheet(sheetName);
 
-            //load the row
+            // load the row
             Row row = sh.getRow(0);
 
+            //
             int noOfRows = sh.getPhysicalNumberOfRows();
-            int noOfColumns = row.getLastCellNum();
+            int noOfCols = row.getLastCellNum();
 
-            System.out.println(noOfRows + " - " + noOfColumns);
+            System.out.println(noOfRows + " - " + noOfCols);
 
             Cell cell;
-            data = new Object[noOfRows - 1][noOfColumns];
-            for (int i = 1; i < noOfRows ; i++) {
-                for (int j = 0; j < noOfColumns; j++) {
+            data = new Object[noOfRows - 1][noOfCols];
+
+            //
+            for (int i = 1; i < noOfRows; i++) {
+                for (int j = 0; j < noOfCols; j++) {
                     row = sh.getRow(i);
                     cell = row.getCell(j);
 
-                    switch (cell.getCellType()){
+                    switch (cell.getCellType()) {
                         case STRING:
-                            data[i -1][j] = cell.getStringCellValue();
+                            data[i - 1][j] = cell.getStringCellValue();
                             break;
                         case NUMERIC:
                             data[i - 1][j] = String.valueOf(cell.getNumericCellValue());
@@ -155,9 +192,9 @@ public class ExcelHelper {
                     }
                 }
             }
-        } catch (Exception e){
-            System.out.println(e.getMessage());
-            throw  new RuntimeException(e);
+        } catch (Exception e) {
+            LogUtils.error(e.getMessage());
+            throw new RuntimeException(e);
         }
         return data;
     }
@@ -168,7 +205,7 @@ public class ExcelHelper {
             row = sh.getRow(0);
             return row.getLastCellNum();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            LogUtils.error(e.getMessage());
             throw (e);
         }
     }
@@ -194,7 +231,7 @@ public class ExcelHelper {
                     System.out.println("File Excel path not found.");
                     throw new IOException("File Excel path not found.");
                 } catch (Exception e) {
-                    System.out.println(e.getMessage());
+                    LogUtils.error(e.getMessage());
                 }
             }
 
@@ -207,8 +244,8 @@ public class ExcelHelper {
             int rows = getLastRowNum();
             int columns = getColumns();
 
-            System.out.println("Row: " + rows + " - Column: " + columns);
-            System.out.println("StartRow: " + startRow + " - EndRow: " + endRow);
+            LogUtils.info("Row: " + rows + " - Column: " + columns);
+            LogUtils.info("StartRow: " + startRow + " - EndRow: " + endRow);
 
             data = new Object[(endRow - startRow) + 1][1];
             Hashtable<String, String> table = null;
@@ -221,7 +258,7 @@ public class ExcelHelper {
             }
 
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            LogUtils.error(e.getMessage());
         }
 
         return data;

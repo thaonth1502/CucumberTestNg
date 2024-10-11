@@ -1,4 +1,4 @@
-package thaonth7.fpt.com.helpers;
+package thaonth7.helpers;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

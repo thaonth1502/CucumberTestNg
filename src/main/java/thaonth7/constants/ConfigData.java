@@ -1,8 +1,9 @@
-package thaonth7.fpt.com.constants;
+package thaonth7.constants;
 
-import thaonth7.fpt.com.helpers.PropertiesHelper;
+import thaonth7.helpers.PropertiesHelper;
 
 public class ConfigData {
+    public static String BROWSER = PropertiesHelper.getValue("BROWSER");
     public static String URL = PropertiesHelper.getValue("URL");
     public static String EMAIL = PropertiesHelper.getValue("EMAIL");
     public static String PASSWORD = PropertiesHelper.getValue("PASSWORD");

@@ -1,4 +1,4 @@
-package thaonth7.fpt.com.drivers;
+package thaonth7.drivers;
 
 import org.openqa.selenium.WebDriver;
 
